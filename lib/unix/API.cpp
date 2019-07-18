@@ -111,29 +111,43 @@ namespace API{
 		Local<Object> result = Object::New(isolate);
 		Local<Object> resOptions = Object::New(isolate);
 		Local<Object> resDefaults = Object::New(isolate);
+		Local<Object> groupDetails = Object::New(isolate);
 
 		ppd_group_t* group = ppd->groups;
 
 		for (int i = 0; i < ppd->num_groups; i++)
         {
 			ppd_option_t* option = group->options;
+			Local<Array> groupOptions = Array::New(isolate, option->num_choices);
+
 			for (int j = 0; j < group->num_options; j++)
 			{
 				Local<Array> choices = Array::New(isolate, option->num_choices);
 				resOptions->Set(UTF8_STRING(option->keyword), choices);
 				ppd_choice_t* choice = option->choices;
-				
+
+				Local<Object> dispOption = Object::New(isolate);
+				dispOption->Set(UTF8_STRING("keyword"), UTF8_STRING(option->keyword));
+				dispOption->Set(UTF8_STRING("text"), UTF8_STRING(option->text));
+				groupOptions->Set(j, dispOption);
+
 				for(int h = 0; h < option->num_choices; h++){
-					choices->Set(h, UTF8_STRING(choice->text));
+					Local<Object> dispChoice = Object::New(isolate);
+					dispChoice->Set(UTF8_STRING("choice"), UTF8_STRING(choice->choice));
+					dispChoice->Set(UTF8_STRING("text"), UTF8_STRING(choice->text));
+
+					choices->Set(h, dispChoice);
 					
 					if(choice->marked)
-						resDefaults->Set(UTF8_STRING(option->keyword), UTF8_STRING(choice->text));
+						resDefaults->Set(UTF8_STRING(option->keyword), UTF8_STRING(choice->choice));
 
 					choice++;
 				}
 
 				option++;
 			}
+
+			groupDetails->Set(UTF8_STRING(group->name), groupOptions);
 
 			group++;
 		}
@@ -143,6 +157,7 @@ namespace API{
 		
 		result->Set(UTF8_STRING("options"), resOptions);
 		result->Set(UTF8_STRING("defaultOptions"), resDefaults);
+		result->Set(UTF8_STRING("groupDetails"), groupDetails);
 		args.GetReturnValue().Set(result);
 	}
 
